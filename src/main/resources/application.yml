@@ -70,3 +70,8 @@ logging:
     level: "%5p [requestId:%X{requestId:-}]"
   level:
     org.hibernate.SQL: INFO
+
+semblefe:
+  legal-documents:
+    terms-of-use-version: "${TERMS_OF_USE_VERSION:1.0}"
+    privacy-policy-version: "${PRIVACY_POLICY_VERSION:1.0}"
