@@ -75,3 +75,7 @@ semblefe:
   legal-documents:
     terms-of-use-version: "${TERMS_OF_USE_VERSION:1.0}"
     privacy-policy-version: "${PRIVACY_POLICY_VERSION:1.0}"
+  identity:
+    email-verification:
+      token-validity: "${EMAIL_VERIFICATION_TOKEN_VALIDITY:PT30M}"
+      resend-cooldown: "${EMAIL_VERIFICATION_RESEND_COOLDOWN:PT1M}"
