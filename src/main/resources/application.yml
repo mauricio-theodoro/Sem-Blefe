@@ -28,6 +28,22 @@ spring:
     enabled: true
     locations: classpath:db/migration
     validate-migration-naming: true
+  mail:
+    host: "${MAIL_HOST:localhost}"
+    port: "${MAIL_PORT:1025}"
+    username: "${MAIL_USERNAME:}"
+    password: "${MAIL_PASSWORD:}"
+    properties:
+      mail:
+        smtp:
+          auth: "${MAIL_SMTP_AUTH:false}"
+          connectiontimeout: "${MAIL_CONNECTION_TIMEOUT_MS:5000}"
+          timeout: "${MAIL_READ_TIMEOUT_MS:5000}"
+          writetimeout: "${MAIL_WRITE_TIMEOUT_MS:5000}"
+          starttls:
+            enable: "${MAIL_STARTTLS_ENABLED:false}"
+            required: "${MAIL_STARTTLS_REQUIRED:false}"
+    test-connection: false
   jackson:
     default-property-inclusion: non_null
 
@@ -79,3 +95,5 @@ semblefe:
     email-verification:
       token-validity: "${EMAIL_VERIFICATION_TOKEN_VALIDITY:PT30M}"
       resend-cooldown: "${EMAIL_VERIFICATION_RESEND_COOLDOWN:PT1M}"
+      sender: "${MAIL_FROM:no-reply@semblefe.local}"
+      confirmation-page-url: "${EMAIL_VERIFICATION_PAGE_URL:http://localhost:5173/confirm-email}"
