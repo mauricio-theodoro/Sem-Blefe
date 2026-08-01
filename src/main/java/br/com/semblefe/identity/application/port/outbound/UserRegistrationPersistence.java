@@ -1,12 +1,18 @@
 package br.com.semblefe.identity.application.port.outbound;
 
+import br.com.semblefe.identity.application.model.EmailVerificationDelivery;
+import br.com.semblefe.identity.application.model.NewEmailVerification;
 import br.com.semblefe.identity.application.model.NewUser;
+
+import java.util.Optional;
 
 public interface UserRegistrationPersistence {
 
     /**
-     * @return {@code true} when the account is created or {@code false} when
-     * the normalized email address is already registered.
+     * @return delivery data when the account and its verification token are
+     * created, or empty when the normalized email address already exists.
      */
-    boolean register(NewUser user);
+    Optional<EmailVerificationDelivery> register(
+            NewUser user,
+            NewEmailVerification emailVerification);
 }

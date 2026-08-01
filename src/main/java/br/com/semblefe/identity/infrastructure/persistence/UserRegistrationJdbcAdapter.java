@@ -1,11 +1,15 @@
 package br.com.semblefe.identity.infrastructure.persistence;
 
+import br.com.semblefe.identity.application.model.EmailVerificationDelivery;
+import br.com.semblefe.identity.application.model.NewEmailVerification;
 import br.com.semblefe.identity.application.model.NewUser;
 import br.com.semblefe.identity.application.port.outbound.UserRegistrationPersistence;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -21,7 +25,15 @@ public class UserRegistrationJdbcAdapter
 
     @Override
     @Transactional
-    public boolean register(NewUser user) {
+    public Optional<EmailVerificationDelivery> register(
+            NewUser user,
+            NewEmailVerification emailVerification) {
+
+        if (!user.id().equals(emailVerification.userId())) {
+            throw new IllegalArgumentException(
+                    "O token de confirmação não pertence ao usuário informado.");
+        }
+
         Optional<UUID> insertedUser = jdbcClient.sql("""
                         INSERT INTO usuarios (
                             id,
@@ -52,12 +64,18 @@ public class UserRegistrationJdbcAdapter
                 .optional();
 
         if (insertedUser.isEmpty()) {
-            return false;
+            return Optional.empty();
         }
 
         int insertedRoles = jdbcClient.sql("""
-                        INSERT INTO usuario_papeis (usuario_id, papel)
-                        VALUES (:userId, :role)
+                        INSERT INTO usuario_papeis (
+                            usuario_id,
+                            papel
+                        )
+                        VALUES (
+                            :userId,
+                            :role
+                        )
                         """)
                 .param("userId", user.id())
                 .param("role", user.initialRole())
@@ -95,11 +113,46 @@ public class UserRegistrationJdbcAdapter
                 .param("source", user.legalAcceptanceSource())
                 .update();
 
+        Instant expiresAt = jdbcClient.sql("""
+                        INSERT INTO tokens_verificacao_email (
+                            id,
+                            usuario_id,
+                            token_hash,
+                            criado_em,
+                            expira_em
+                        )
+                        VALUES (
+                            :id,
+                            :userId,
+                            :tokenHash,
+                            statement_timestamp(),
+                            statement_timestamp()
+                                + make_interval(secs => :validitySeconds)
+                        )
+                        RETURNING expira_em
+                        """)
+                .param("id", emailVerification.id())
+                .param("userId", emailVerification.userId())
+                .param("tokenHash", emailVerification.tokenHash())
+                .param(
+                        "validitySeconds",
+                        seconds(emailVerification.tokenValidity()))
+                .query((resultSet, rowNumber) ->
+                        resultSet.getTimestamp("expira_em").toInstant())
+                .single();
+
         if (insertedRoles != 1 || insertedAcceptances != 2) {
             throw new IllegalStateException(
                     "O cadastro não gravou todas as relações obrigatórias.");
         }
 
-        return true;
+        return Optional.of(new EmailVerificationDelivery(
+                user.email().value(),
+                expiresAt));
+    }
+
+    private double seconds(Duration duration) {
+        return duration.getSeconds()
+                + duration.getNano() / 1_000_000_000.0d;
     }
 }
